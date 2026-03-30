@@ -2,7 +2,45 @@
 
 namespace OBP200_RolePlayingGame;
 
+interface IEnemy
+{
+      string Name { get; set; }
+      int HP { get; set; }
+      int Attack{get;set;}
+      int Defense{get;set;}
+      int XPReward{get;set;}
+      int GoldReward{get;set;}
+}
+class Enemy : IEnemy
+{
+    public string Name  { get; set; }
+    public int HP { get; set; }
+    public int Attack { get; set; }
+    public int Defense { get; set; }
+    public int XPReward {get; set;}
+    public int GoldReward {get; set;}
 
+    public Enemy(string name, int hp, int attack, int defense, int xpReward, int goldReward)
+    {
+        this.Name = name;
+        this.HP = hp;
+        this.Attack = attack;
+        this.Defense = defense;
+       this.XPReward = xpReward;
+        this.GoldReward = goldReward;
+    }
+}
+
+class Boss : Enemy
+{
+    public Boss(string name, int hp, int attack, int defense, int xpReward, int goldReward)
+        : base(name, hp, attack, defense, xpReward, goldReward)
+    {
+    }
+
+
+
+}
 class Program
 {
     // ======= Globalt tillstånd  =======
@@ -199,18 +237,18 @@ class Program
 
     static bool DoBattle(bool isBoss)
     {
-        var enemy = GenerateEnemy(isBoss);
-        Console.WriteLine($"En {enemy[1]} dyker upp! (HP {enemy[2]}, ATK {enemy[3]}, DEF {enemy[4]})");
+        IEnemy enemy = GenerateEnemy(isBoss);
+        Console.WriteLine($"En {enemy.Name} dyker upp! (HP {enemy.HP}, ATK {enemy.Attack}, DEF {enemy.Defense})");
 
-        int enemyHp = ParseInt(enemy[2], 10);
-        int enemyAtk = ParseInt(enemy[3], 3);
-        int enemyDef = ParseInt(enemy[4], 0);
+        int enemyHp = enemy.HP;
+        int enemyAtk = enemy.Attack;
+        int enemyDef = enemy.Defense;
 
         while (enemyHp > 0 && !IsPlayerDead())
         {
             Console.WriteLine();
             ShowStatus();
-            Console.WriteLine($"Fiende: {enemy[1]} HP={enemyHp}");
+            Console.WriteLine($"Fiende: {enemy.Name} HP={enemyHp}");
             Console.WriteLine("[A] Attack   [X] Special   [P] Dryck   [R] Fly");
             if (isBoss) Console.WriteLine("(Du kan inte fly från en boss!)");
             Console.Write("Val: ");
@@ -221,13 +259,13 @@ class Program
             {
                 int damage = CalculatePlayerDamage(enemyDef);
                 enemyHp -= damage;
-                Console.WriteLine($"Du slog {enemy[1]} för {damage} skada.");
+                Console.WriteLine($"Du slog {enemy.Name} för {damage} skada.");
             }
             else if (cmd == "X")
             {
                 int special = UseClassSpecial(enemyDef, isBoss);
                 enemyHp -= special;
-                Console.WriteLine($"Special! {enemy[1]} tar {special} skada.");
+                Console.WriteLine($"Special! {enemy.Name} tar {special} skada.");
             }
             else if (cmd == "P")
             {
@@ -255,7 +293,7 @@ class Program
             // Fiendens tur
             int enemyDamage = CalculateEnemyDamage(enemyAtk);
             ApplyDamageToPlayer(enemyDamage);
-            Console.WriteLine($"{enemy[1]} anfaller och gör {enemyDamage} skada!");
+            Console.WriteLine($"{enemy.Name} anfaller och gör {enemyDamage} skada!");
         }
 
         if (IsPlayerDead())
@@ -264,24 +302,24 @@ class Program
         }
 
         // Vinstrapporter, XP, guld, loot
-        int xpReward = ParseInt(enemy[5], 5);
-        int goldReward = ParseInt(enemy[6], 3);
+        int xpReward = enemy.XPReward;
+        int goldReward = enemy.GoldReward;
 
         AddPlayerXp(xpReward);
         AddPlayerGold(goldReward);
 
         Console.WriteLine($"Seger! +{xpReward} XP, +{goldReward} guld.");
-        MaybeDropLoot(enemy[1]);
+        MaybeDropLoot(enemy.Name);
 
         return true;
     }
 
-    static string[] GenerateEnemy(bool isBoss)
+    static IEnemy GenerateEnemy(bool isBoss)
     {
         if (isBoss)
         {
             // Boss-mall
-            return new[] { "boss", "Urdraken", "55", "9", "4", "30", "50" };
+            return new Boss ("Urdraken", 55,9,4,30,50);
         }
         else
         {
@@ -294,7 +332,8 @@ class Program
             int def = ParseInt(template[4], 0) + Rng.Next(0, 2);
             int xp = ParseInt(template[5], 4) + Rng.Next(0, 3);
             int gold = ParseInt(template[6], 2) + Rng.Next(0, 3);
-            return new[] { template[0], template[1], hp.ToString(), atk.ToString(), def.ToString(), xp.ToString(), gold.ToString() };
+            return new Enemy(template[1], hp, atk, def, xp, gold);
+
         }
     }
 
