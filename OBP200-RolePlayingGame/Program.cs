@@ -1,46 +1,5 @@
 ﻿using System.Text;
-
 namespace OBP200_RolePlayingGame;
-
-interface IEnemy
-{
-      string Name { get; set; }
-      int HP { get; set; }
-      int Attack{get;set;}
-      int Defense{get;set;}
-      int XPReward{get;set;}
-      int GoldReward{get;set;}
-}
-class Enemy : IEnemy
-{
-    public string Name  { get; set; }
-    public int HP { get; set; }
-    public int Attack { get; set; }
-    public int Defense { get; set; }
-    public int XPReward {get; set;}
-    public int GoldReward {get; set;}
-
-    public Enemy(string name, int hp, int attack, int defense, int xpReward, int goldReward)
-    {
-        this.Name = name;
-        this.HP = hp;
-        this.Attack = attack;
-        this.Defense = defense;
-       this.XPReward = xpReward;
-        this.GoldReward = goldReward;
-    }
-}
-
-class Boss : Enemy
-{
-    public Boss(string name, int hp, int attack, int defense, int xpReward, int goldReward)
-        : base(name, hp, attack, defense, xpReward, goldReward)
-    {
-    }
-
-
-
-}
 class Program
 {
     // ======= Globalt tillstånd  =======
@@ -239,38 +198,40 @@ class Program
     {
         IEnemy enemy = GenerateEnemy(isBoss);
         Console.WriteLine($"En {enemy.Name} dyker upp! (HP {enemy.HP}, ATK {enemy.Attack}, DEF {enemy.Defense})");
-
-        int enemyHp = enemy.HP;
-        int enemyAtk = enemy.Attack;
-        int enemyDef = enemy.Defense;
-
-        while (enemyHp > 0 && !IsPlayerDead())
+        while (!enemy.IsDead() && !IsPlayerDead())
+            
         {
             Console.WriteLine();
             ShowStatus();
-            Console.WriteLine($"Fiende: {enemy.Name} HP={enemyHp}");
-            Console.WriteLine("[A] Attack   [X] Special   [P] Dryck   [R] Fly");
-            if (isBoss) Console.WriteLine("(Du kan inte fly från en boss!)");
-            Console.Write("Val: ");
+            Console.WriteLine($"Fiende {enemy.Name} HP= {enemy.HP}");
+            Console.WriteLine("[A] Attack [X] Special [P] Dryck [R] Fly");
+        
 
-            var cmd = (Console.ReadLine() ?? "").Trim().ToUpperInvariant();
-
+        if (isBoss)
+        {
+            Console.WriteLine("Du kan inte fly från en boss!");
+        }
+        
+            Console.WriteLine("Val:");
+            var cmd=(Console.ReadLine() ?? "").Trim().ToUpperInvariant();
             if (cmd == "A")
             {
-                int damage = CalculatePlayerDamage(enemyDef);
-                enemyHp -= damage;
+                int damage = CalculatePlayerDamage(enemy.Defense);
+                enemy.TakeDamage(damage);
                 Console.WriteLine($"Du slog {enemy.Name} för {damage} skada.");
             }
             else if (cmd == "X")
             {
-                int special = UseClassSpecial(enemyDef, isBoss);
-                enemyHp -= special;
+                int special= UseClassSpecial(enemy.Defense, isBoss);
+                enemy.TakeDamage(special);
                 Console.WriteLine($"Special! {enemy.Name} tar {special} skada.");
             }
             else if (cmd == "P")
             {
                 UsePotion();
             }
+
+            
             else if (cmd == "R" && !isBoss)
             {
                 if (TryRunAway())
@@ -288,10 +249,15 @@ class Program
                 Console.WriteLine("Du tvekar...");
             }
 
-            if (enemyHp <= 0) break;
+            if (enemy.IsDead())
+            {
+
+                break;
+            }
 
             // Fiendens tur
-            int enemyDamage = CalculateEnemyDamage(enemyAtk);
+            int enemyAttack = enemy.CalculateDamage(Rng);
+            int enemyDamage = CalculateEnemyDamage(enemyAttack);
             ApplyDamageToPlayer(enemyDamage);
             Console.WriteLine($"{enemy.Name} anfaller och gör {enemyDamage} skada!");
         }
@@ -302,13 +268,11 @@ class Program
         }
 
         // Vinstrapporter, XP, guld, loot
-        int xpReward = enemy.XPReward;
-        int goldReward = enemy.GoldReward;
+        
+        AddPlayerXp(enemy.XPReward);
+        AddPlayerGold(enemy.GoldReward);
 
-        AddPlayerXp(xpReward);
-        AddPlayerGold(goldReward);
-
-        Console.WriteLine($"Seger! +{xpReward} XP, +{goldReward} guld.");
+        Console.WriteLine($"Seger! +{enemy.XPReward} XP, +{enemy.GoldReward} guld.");
         MaybeDropLoot(enemy.Name);
 
         return true;
